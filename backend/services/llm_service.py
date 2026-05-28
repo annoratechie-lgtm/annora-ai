@@ -1,32 +1,42 @@
 import os
 import json
-# from openai import OpenAI
-from dotenv import load_dotenv
 from groq import Groq
 
-load_dotenv()
+client = Groq(
+    api_key=os.getenv("grokapi")
+)
+
+MODEL_NAME = "llama-3.1-8b-instant"
 
 
-# client = OpenAI(
-#     base_url="https://openrouter.ai/api/v1",
-#     api_key=os.getenv("OPENROUTER_API_KEY"),
-# )
+def generate_llm_response(prompt: str):
+
+    completion = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.7,
+    )
+
+    return (
+        completion
+        .choices[0]
+        .message
+        .content
+    )
 
 
-api_key = os.getenv("apiKey")
-grokapi=os.getenv("grokapi")
-client = Groq(api_key=os.getenv("grokapi"))
-
-
-def generate_meal_plan(profile_data):
+def generate_meal_plan(user_profile):
 
     prompt = f"""
-    You are an AI meal planner.
-
-    Generate a 7-day meal plan.
+    Create a weekly meal plan.
 
     User Profile:
-    {profile_data}
+    {user_profile}
 
     Rules:
     - Return ONLY valid JSON
@@ -45,19 +55,7 @@ def generate_meal_plan(profile_data):
     }}
     """
 
-    completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.7
-    )
-
-    response_text = completion.choices[0].message.content.strip()
-
+    response_text = generate_llm_response(prompt)
     try:
         return json.loads(response_text)
     except json.JSONDecodeError:
@@ -66,3 +64,32 @@ def generate_meal_plan(profile_data):
         if start != -1 and end != -1 and end > start:
             return json.loads(response_text[start:end + 1])
         raise
+    return 
+
+import json
+
+
+def generate_json_response(prompt: str):
+
+    completion = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3,
+        response_format={
+            "type": "json_object"
+        }
+    )
+
+    content = (
+        completion
+        .choices[0]
+        .message
+        .content
+    )
+
+    return json.loads(content)

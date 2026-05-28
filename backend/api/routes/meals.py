@@ -1,8 +1,7 @@
-import json
-
 from fastapi import APIRouter, HTTPException
 from services.db_service import supabase
 from services.llm_service import generate_meal_plan
+from agents.graph import meal_graph
 
 router = APIRouter()
 
@@ -28,13 +27,24 @@ def create_meal_plan(user_id: str):
     user_profile = onboarding_data[0]
 
     try:
-        meal_plan = generate_meal_plan(user_profile)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"AI response JSON parsing failed: {exc}",
-        )
+
+        result = meal_graph.invoke({
+            "user_profile": user_profile
+        })
+
+        meal_plan = result[
+            "validated_meal_plan"
+        ]
+
+        grocery_list = result[
+            "grocery_list"
+        ]
+        estimated_budget = result[
+    "estimated_budget"
+]
+
     except Exception as exc:
+
         raise HTTPException(
             status_code=502,
             detail=f"Meal plan generation failed: {exc}",
@@ -47,8 +57,10 @@ def create_meal_plan(user_id: str):
     }).execute()
 
     return {
-        "meal_plan": meal_plan
-    }
+    "meal_plan": meal_plan,
+    "grocery_list": grocery_list,
+    "estimated_budget": estimated_budget
+}
 
 
 @router.get("/meal-history/{user_id}")

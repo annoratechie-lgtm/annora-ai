@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.onboarding import router as onboarding_router
 from api.routes.meals import router as meals_router
+from api.routes.tools import (
+    router as tools_router
+)
 
 app = FastAPI()
 
@@ -16,6 +19,7 @@ app.add_middleware(
 )
 
 # ROUTES
+app.include_router(tools_router)
 app.include_router(onboarding_router)
 app.include_router(meals_router)
 
