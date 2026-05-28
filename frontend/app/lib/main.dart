@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'screens/onboarding_screen.dart';
+import 'core/constants/supabase_constants.dart';
+import 'core/theme/app_theme.dart';
+import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: SupabaseConstants.supabaseUrl,
+    anonKey: SupabaseConstants.supabaseAnonKey,
+  );
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -12,17 +24,17 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AI Meal Planner',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
-      home: const OnboardingScreen(),
+      theme: AppTheme.lightTheme,
+      home: const SplashScreen(),
     );
   }
 }

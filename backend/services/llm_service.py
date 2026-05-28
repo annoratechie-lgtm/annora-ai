@@ -56,6 +56,13 @@ def generate_meal_plan(profile_data):
         temperature=0.7
     )
 
-    response_text = completion.choices[0].message.content
+    response_text = completion.choices[0].message.content.strip()
 
-    return json.loads(response_text)
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        start = response_text.find("{")
+        end = response_text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(response_text[start:end + 1])
+        raise

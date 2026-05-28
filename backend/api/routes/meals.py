@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+import json
+
+from fastapi import APIRouter, HTTPException
 from services.db_service import supabase
 from services.llm_service import generate_meal_plan
 
@@ -15,24 +17,49 @@ def create_meal_plan(user_id: str):
         .execute()
     )
 
-    if not onboarding_response.data:
-        return {"error": "User onboarding not found"}
+    onboarding_data = onboarding_response.data
 
-    profile_data = onboarding_response.data[0]
+    if not onboarding_data:
+        raise HTTPException(
+            status_code=404,
+            detail="User onboarding not found",
+        )
 
-    meal_plan = generate_meal_plan(profile_data)
+    user_profile = onboarding_data[0]
 
-    save_response = (
-        supabase.table("meal_plans")
-        .insert({
-            "user_id": user_id,
-            "meal_data": meal_plan
-        })
+    try:
+        meal_plan = generate_meal_plan(user_profile)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI response JSON parsing failed: {exc}",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Meal plan generation failed: {exc}",
+        )
+
+    # SAVE TO HISTORY
+    supabase.table("meal_history").insert({
+        "user_id": user_id,
+        "meal_plan": meal_plan
+    }).execute()
+
+    return {
+        "meal_plan": meal_plan
+    }
+
+
+@router.get("/meal-history/{user_id}")
+def get_meal_history(user_id: str):
+
+    response = (
+        supabase.table("meal_history")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
         .execute()
     )
 
-    return {
-        "message": "Meal plan generated",
-        "meal_plan": meal_plan,
-        "saved_data": save_response.data
-    }
+    return response.data
